@@ -3,6 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="互换两张图像的傅里叶幅度与相位，再亲手验证平移定理。"><title>互换频谱以后，你还认得谁？ · Yueqi 的交互实验</title><link rel="stylesheet" href="../style.css"><script type="module" src="app.js"></script></head>
 <body class="fourier"><header><a class="wordmark" href="https://chenyueqi2024.github.io/">Yueqi · 实验室</a><nav aria-label="实验"><a href="../">背景捷径</a><a href="../calibration/">置信度</a><a href="./" aria-current="page">傅里叶图像</a></nav></header>
 <main>
+  <a class="research-jump" href="#research">应用、前沿论文与研究练习</a>
   <section class="hero"><div><p class="eyebrow">信号处理 / 二维傅里叶变换</p><h1>互换频谱以后，<br>你还认得谁？</h1></div><p>一幅图可以拆成频率成分的强度和相位。把建筑的幅度和叶片的相位拼起来，重建图会像谁？</p></section>
   <section class="panel">
     <div class="section-head"><h2>交叉重建两张图</h2><button class="secondary" id="defaults" disabled>恢复示例</button></div>
@@ -31,5 +32,19 @@
     <p class="verdict" id="magnitude-note"></p>
   </section>
   <details><summary>观察背后的公式与条件</summary><p>频谱可写成 F = A · exp(iφ)。A 是幅度，φ 是相位。交换图像的幅度与相位后，用二维逆 FFT 合成像素，两幅合成图用同一灰度范围显示。轮廓常随相位保留下来，幅度仍会改变亮度、对比度和纹理。两张图的频率分布差得很多时，效果也会变。</p><p>宽度 N 的图像循环右移 Δ 像素，每个水平频率 k 会多乘一个 exp(−2πikΔ/N)。这个因子的绝对值为 1，所以幅度不变，相位随频率而变。相位差图把角度折回 −π 到 +π，幅度接近零的点留暗。裁切或用空白填充边缘会改变信号，和这里的循环平移条件不同。</p><p><a href="https://dsp-group.mit.edu/wp-content/uploads/2024/11/ImportancePhaseSignals_1981.pdf">Oppenheim 与 Lim · The Importance of Phase in Signals，1981</a></p></details>
+  <section class="research" id="research" aria-labelledby="research-title">
+    <h2 id="research-title">从相位差到配准、修复和频域学习</h2>
+    <p class="research-lead">刚才你给定了位移，再观察相位怎么变。研究中经常要反过来做：给两幅可能没对齐的图，利用频谱估计它们相差多少。之后还可以把频域用在域适应、图像修复和学习算子中。</p>
+    <section class="research-lab" aria-labelledby="registration-title"><h3 id="registration-title">让频谱自己找回平移量</h3><p>这次只把两张图的频谱传入相位相关计算。先令移动图的频谱乘上原图频谱的共轭，再逐频点除以乘积的幅度，最后做逆 FFT。曲线画出第 0 行的相关值，较强的峰对应候选横向位移。</p><div class="actions"><label for="registration-shift">循环右移 <output id="registration-shift-value">24 px</output></label><input id="registration-shift" type="range" min="0" max="127" value="24" disabled></div><canvas id="registration-plot" role="img" aria-label="相位相关第零行，横轴为候选循环平移像素数"></canvas><p id="registration-result" role="status">正在准备图像…</p><p>试着换成规则重复的窗格或条纹图。多个相近峰意味着多种位移都能解释观测。</p></section>
+    <h3 class="route-heading">从应用到前沿</h3>
+    <ol class="research-route">
+      <li><article><h4>相位相关怎样逆推出位移</h4><p>循环平移使相位增加一条随频率线性变化的斜坡。归一化互功率谱保留两图的相位差，逆变换可将这条斜坡还原为位移对应的峰。</p><p class="trade">峰的位置可直接给出候选位移。低纹理、重复结构或非循环裁切会让峰降低或变得含糊；真实配准还常需窗函数和亚像素处理。旋转、尺度变化需要额外模型。</p><p class="sources"><a href="https://dsp-group.mit.edu/wp-content/uploads/2024/11/ImportancePhaseSignals_1981.pdf">Oppenheim 与 Lim · 幅度和相位，1981</a> · <a href="https://pubmed.ncbi.nlm.nih.gov/18285214/">Reddy 与 Chatterji · 基于 FFT 的图像配准，1996</a></p></article></li>
+      <li><article><h4>从换整幅频谱到只换低频</h4><p>FDA 用于跨域语义分割。它替换源图靠近频谱中心的一小块幅度，供体来自目标域，同时保留源图相位和训练标签。直观目标是让模拟街景的外观接近实拍域。</p><p class="trade">这种变换计算便宜，便于做控制实验。频域中的低频也含有任务所需信息，交换区域太大可能改掉可辨认细节。幅度与相位并非分别只负责风格和内容。</p><p class="sources"><a href="https://arxiv.org/abs/2004.05498">Yang 与 Soatto · Fourier Domain Adaptation，CVPR 2020</a></p></article></li>
+      <li><article><h4>让远处像素交流，或学习物理场的映射</h4><p>Fast Fourier Convolution 加入全局频域分支，让远隔的图像区域共享信息，LaMa 用它修复大面积遮挡。Fourier Neural Operator 则在频域学习输入场到输出场的映射，例如由初始条件预测流体场。</p><p class="trade">全局频域操作能传递长程结构，局部边缘和不规则边界仍可能需要空间分支或边界处理。截断频率可省计算，但可能损失小尺度结构。</p><p class="sources"><a href="https://proceedings.neurips.cc/paper/2020/file/2fd5d41ec6cfab47e32164d5624269b1-Paper.pdf">Chi 等 · Fast Fourier Convolution，NeurIPS 2020</a> · <a href="https://arxiv.org/abs/2109.07161">Suvorov 等 · LaMa</a> · <a href="https://arxiv.org/abs/2010.08895">Li 等 · Fourier Neural Operator，ICLR 2021</a></p></article></li>
+      <li><article><h4>前沿 · 学习该增强哪些频率</h4><p>DiffFNO 在任意倍率超分辨率中对频率模式重新加权，并与空间注意特征融合，再用扩散方式重建细节。这把手工选择频带的问题变成了可以训练和消融的设计选择。FraIR 则沿模型特征做一维傅里叶变换，再用低秩投影重加权，用少量可训练参数适配修复任务。</p><p class="trade">看起来更利落的纹理可能是生成模型补出的细节。验证时需要参考图、像素误差和频带误差，也要检查输入里原本看不清的细节能否被独立证据证实。</p><p class="sources"><a href="https://openaccess.thecvf.com/content/CVPR2025/html/Liu_DiffFNO_Diffusion_Fourier_Neural_Operator_CVPR_2025_paper.html">Liu 与 Tang · DiffFNO，CVPR 2025</a> · <a href="https://mandalinadagi.github.io/papers/frair.html">Korkmaz Soner 等 · FraIR，CVPR 2026 Workshop</a></p></article></li>
+    </ol>
+    <section class="research-project" aria-labelledby="research-question"><h3 id="research-question">做一条配准失效边界曲线</h3><p>以已知位移制作成对图像。固定同一批图，分别加入裁切、噪声、模糊和重复纹理，用空间域归一化互相关作为对照。</p><p>按扰动强度报告位移误差和峰值歧义率。再比较给边缘加窗是否改善有裁切的情况，以及是否反而损伤原本干净的循环平移。最后在自己的成对照片上抽查失败案例。</p></section>
+    <a class="research-next" href="../#research">回到背景捷径的研究导读</a>
+  </section>
   <footer><a href="../">返回背景捷径实验</a><a href="https://github.com/ChenYueqi2024/model-evidence-labs">源码与复现</a></footer>
 </main></body></html>

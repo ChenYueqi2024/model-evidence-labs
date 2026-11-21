@@ -3,6 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="用可靠性图和一批真实计算的分类概率实验温度校准。"><title>九成把握，真的能对九成吗？ · Yueqi 的交互实验</title><link rel="stylesheet" href="../style.css"><script type="module" src="app.js"></script></head>
 <body class="calibration"><header><a class="wordmark" href="https://chenyueqi2024.github.io/">Yueqi · 实验室</a><nav aria-label="实验"><a id="previous" href="../">背景捷径</a><a href="./" aria-current="page">置信度</a><a href="../fourier/">傅里叶图像</a></nav></header>
 <main>
+  <a class="research-jump" href="#research">应用、前沿论文与研究练习</a>
   <section class="hero"><div><p class="eyebrow">分类概率 / 温度校准</p><h1>九成把握，<br>真的能对九成吗？</h1></div><p>继续用上一站的分类器。挑一档它说自己很有把握的图片，猜猜其中有多少张真的判对。</p></section>
   <section class="panel">
     <div class="section-head"><h2>围绕同一个模型做两次测量</h2><span id="model-status" role="status">正在准备模型…</span></div>
@@ -26,5 +27,19 @@
     <div class="table-wrap"><table><caption>每档的读数。置信度是模型给预测类别的概率。</caption><thead><tr><th scope="col">置信度</th><th scope="col">张数</th><th scope="col">平均把握</th><th scope="col">实际答对</th></tr></thead><tbody id="bin-rows"></tbody></table></div>
   </section>
   <details><summary>为什么调温不改类别？校准后还能失效吗？</summary><p>温度缩放先把分类分数除以正数 T，再计算概率。T 越大，分数差越接近零，概率更接近一半。正数除法保留分数顺序，所以预测类别保持一致。</p><p>温度在验证集上通过最小化平均负对数似然选出。拟合完成后，可以用同一个温度查看常见搭配较多的测试集和少见搭配较多的测试集，观察校准能否跨分布保持。每档样本少时，实际正确率波动也更大。ECE 是按样本数加权的置信度与正确率差，读数取决于分档。</p><p><a href="https://proceedings.mlr.press/v70/guo17a.html">Guo 等 · On Calibration of Modern Neural Networks，ICML 2017</a></p></details>
+  <section class="research" id="research" aria-labelledby="research-title">
+    <h2 id="research-title">从校准曲线到可控的决策风险</h2>
+    <p class="research-lead">校准回答的是「模型说九成时，这批样本实际有多准」。实际系统往往还要决定哪些预测可以自动采用，哪些应转人工复核。改变阈值，会同时改变答题量和已答样本里的错误率。</p>
+    <section class="research-lab" aria-labelledby="threshold-title"><h3 id="threshold-title">把不够确定的图片交给人工复核</h3><p>使用上方当前的模型、温度和测试集。模型只自动采用置信度达到阈值的预测。把测试分布切到少见搭配较多，看看提高阈值还会不会丢下那些判断错却很自信的图。</p><div class="actions"><label for="decision-threshold">自动采用阈值 <output id="threshold-value">90%</output></label><input id="decision-threshold" type="range" min="50" max="100" step="1" value="90"></div><dl class="study-stats"><div><dt>自动采用</dt><dd id="decision-accepted">—</dd></div><div><dt>需复核</dt><dd id="decision-review">—</dd></div><div><dt>自动采用的预测中判错</dt><dd id="decision-risk">—</dd></div></dl></section>
+    <h3 class="route-heading">从应用到前沿</h3>
+    <ol class="research-route">
+      <li><article><h4>校准概率与检查分布漂移</h4><p>温度缩放用带标签验证集拟合一个参数，让概率更贴近正确频率。Ovadia 等比较了多种方法在分布变化下的不确定性估计，显示同分布校准的改善不能保证迁移后仍然可靠。</p><p class="trade">温度缩放计算成本小，保留了原预测排序，因此没法把原来判错的图变成判对。评估时可并列看负对数似然、可靠性图和各档样本数，避免只挑一个分档指标。</p><p class="sources"><a href="https://proceedings.mlr.press/v70/guo17a.html">Guo 等 · 温度缩放，ICML 2017</a> · <a href="https://arxiv.org/abs/1906.02530">Ovadia 等 · 不确定性与数据分布变化，NeurIPS 2019</a></p></article></li>
+      <li><article><h4>把概率用于拒答</h4><p>选择性分类可以拒答，或者把样本转人工。上面的交互直接报告覆盖率（自动采用比例）与选择性风险（自动采用样本的错误率）。这对应真实应用中复核工作量与自动决策错误之间的取舍。</p><p class="trade">提高阈值会降低覆盖率。若漏掉的是高置信度错例，风险可能降不下来。阈值应在开发集制定，并在预先保留的测试集和有意义的子组上核验。</p><p class="sources"><a href="https://arxiv.org/abs/1705.08500">Geifman 与 El-Yaniv · Selective Classification，NeurIPS 2017</a></p></article></li>
+      <li><article><h4>从单一答案到带覆盖率的预测集合</h4><p>共形预测可以返回一组候选类别。典型拆分式做法用独立校准集的非符合度分数（如 1 − 真标签概率）选取分位数；在校准样本与新样本可交换等条件下，能给出有限样本的边际覆盖保证。共形风险控制进一步处理一类单调损失。</p><p class="trade">集合含真标签的比例和上方的自动采用率是两种覆盖概念。边际保证针对总体，可能掩盖小群组；分布变化也会破坏基本保证的前提。集合越大越容易覆盖，仍须报告平均集合大小。</p><p class="sources"><a href="https://arxiv.org/abs/2009.14193">Angelopoulos 等 · Uncertainty Sets for Image Classifiers，ICLR 2021</a> · <a href="https://research.google/pubs/conformal-risk-control/">Angelopoulos 等 · Conformal Risk Control，ICLR 2024</a></p></article></li>
+      <li><article><h4>前沿 · 大模型校准与局部失效</h4><p>图文模型可以临时更换类别词和提示模板。Tu 等研究了这些变化和数据变化如何影响视觉语言模型校准。Braun 等将诊断问题改写成分类任务，检查能否根据输入预测哪些样本更容易出现共形覆盖不足。</p><p class="trade">开放词表和子群都可能变动。若同一测试集既用于找失效规律又用于证明规律存在，结果容易偏乐观。诊断与最后复查应留出独立数据。</p><p class="sources"><a href="https://proceedings.mlr.press/v235/tu24a.html">Tu 等 · Calibrating Vision-Language Models，ICML 2024</a> · <a href="https://proceedings.mlr.press/v306/braun26c.html">Braun 等 · Conditional Coverage Diagnostics，ICML 2026</a></p></article></li>
+    </ol>
+    <section class="research-project" aria-labelledby="research-question"><h3 id="research-question">同一条拒答规则能用到新环境吗？</h3><p>在常见搭配为 90% 的验证集选定温度和拒答阈值，将两者固定后依次测试 90%、50% 和 5% 的环境。</p><p>画风险–覆盖率曲线，记录各组被转人工的比率。再加入一个共形预测集作对照，分开报告真标签覆盖率与平均集合大小。若总体达标但红底圆频繁漏掉，进一步做分组校准，并比较改进是否值得额外标签和复核成本。</p></section>
+    <a class="research-next" href="../fourier/#research">阅读图像频域的研究导读</a>
+  </section>
   <footer><a href="../fourier/">下一站 · 互换两张照片的频谱</a><a href="https://github.com/ChenYueqi2024/model-evidence-labs">源码与复现</a></footer>
 </main></body></html>

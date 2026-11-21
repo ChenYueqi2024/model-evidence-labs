@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {train, dataset, predictions, pixels, probability} from './model.js';
 import {binsFor, nll, fitTemperature} from './calibration/metrics.js';
-import {transform, combine, shiftRight, magnitudeChanges} from './fourier/fft.js';
+import {transform, combine, shiftRight, magnitudeChanges, phaseCorrelation} from './fourier/fft.js';
 
 test('training interventions keep shape-channel pixels and samples fixed', () => {
   const first = dataset('train',95), second = dataset('train',50);
@@ -47,4 +47,18 @@ test('a cyclic shift preserves amplitude and changes the expected phase', () => 
   const base = transform(image,8), moved = transform(shifted,8);
   assert.ok(magnitudeChanges(base,moved)<1e-12);
   assert.ok(Math.abs(Math.atan2(moved.im[1],moved.re[1]) + 3*Math.PI/4)<1e-12);
+});
+
+test('phase correlation recovers displacement, preserves ambiguous peaks and rejects constant images', () => {
+  const size = 8;
+  const impulse = Float64Array.from({length:64}, (_, i) => Number(i === 10));
+  const stripes = Float64Array.from({length:64}, (_, i) => i % 2);
+  const constant = new Float64Array(64).fill(10);
+  const correlate = (image, shift) =>
+    phaseCorrelation(transform(image,size), transform(shiftRight(image,size,shift),size), size);
+  const unique = correlate(impulse, 7).subarray(0,size);
+  assert.equal(unique.indexOf(Math.max(...unique)), 7);
+  const ambiguous = correlate(stripes, 3).subarray(0,size);
+  assert.deepEqual(Array.from(ambiguous.keys()).filter(i => ambiguous[i] === Math.max(...ambiguous)), [1,3,5,7]);
+  assert.equal(correlate(constant, 3), null);
 });

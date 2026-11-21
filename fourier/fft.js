@@ -66,3 +66,25 @@ export function magnitudeChanges(a,b) {
   }
   return largestError / (largestAC || 1);
 }
+
+export function phaseCorrelation(reference, moved, size) {
+  const real = new Float64Array(size * size), imaginary = real.slice();
+  // Remove DC. It contributes a constant across offsets, even for a blank image.
+  let largest = 0;
+  for (let i = 1; i < real.length; i++) {
+    real[i] = moved.re[i] * reference.re[i] + moved.im[i] * reference.im[i];
+    imaginary[i] = moved.im[i] * reference.re[i] - moved.re[i] * reference.im[i];
+    largest = Math.max(largest, Math.hypot(real[i], imaginary[i]));
+  }
+  if (!largest) return null;
+  for (let i = 1; i < real.length; i++) {
+    const magnitude = Math.hypot(real[i], imaginary[i]);
+    if (magnitude > largest * 1e-12) {
+      real[i] /= magnitude;
+      imaginary[i] /= magnitude;
+    } else {
+      real[i] = imaginary[i] = 0;
+    }
+  }
+  return transform(real, size, imaginary, true).re;
+}

@@ -7,6 +7,20 @@ const controls = ['same','flip','another','retrain','balance'];
 const groupOf = sample => sample.label * 2 + sample.color;
 const labels = Array.from({length:4}, (_, g) => colors[g % 2] + shapes[Math.floor(g / 2)]);
 const accuracy = rows => rows.filter(row => row.correct).length / rows.length;
+const groupRates = rows => labels.map((_, group) =>
+  accuracy(rows.filter(row => groupOf(row.sample) === group)));
+
+function researchMix() {
+  const mix = Number(find('group-mix').value) / 100;
+  find('group-mix-value').textContent = pct(mix);
+  if (!result) return;
+  const weighted = ([blueCircle, redCircle, blueSquare, redSquare]) =>
+    (mix * (blueCircle + redSquare) + (1 - mix) * (redCircle + blueSquare)) / 2;
+  const current = groupRates(result);
+  find('mix-first').textContent = pct(weighted(groupRates(reference)), 1);
+  find('mix-current').textContent = pct(weighted(current), 1);
+  find('mix-worst').textContent = pct(Math.min(...current));
+}
 
 function pair(guess) {
   const original = {...examples[index], color:examples[index].label};
@@ -79,6 +93,7 @@ async function retrain() {
     for (const id of ['continue','next']) find(id).href = 'calibration/?bias=' + bias;
     report();
     pair();
+    researchMix();
   } catch {
     find('training-status').textContent = '训练未完成。请点击「重新训练」再试。';
   } finally {
@@ -92,5 +107,6 @@ find('another').onclick = () => { index = (index + 203) % examples.length; pair(
 find('bias').oninput = () => { find('ratio').textContent = find('bias').value + '%'; };
 find('balance').onclick = () => { find('bias').value = 50; find('bias').oninput(); };
 find('retrain').onclick = retrain;
+find('group-mix').oninput = researchMix;
 pair();
 retrain();

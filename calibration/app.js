@@ -65,6 +65,21 @@ function report() {
   plot();
 }
 
+function decisionRisk() {
+  const threshold = Number(find('decision-threshold').value) / 100;
+  find('threshold-value').textContent = pct(threshold);
+  if (!test) return;
+  const cutoff = temperature() * Math.log(threshold / (1 - threshold));
+  const accepted = test.filter(row => Math.abs(row.logit) >= cutoff);
+  const wrong = accepted.filter(row => !row.correct).length;
+  find('decision-accepted').textContent = accepted.length + ' / ' + test.length + ' · ' +
+    pct(accepted.length / test.length, 1);
+  find('decision-review').textContent = (test.length - accepted.length) + ' 张';
+  find('decision-risk').textContent = accepted.length
+    ? wrong + ' / ' + accepted.length + ' · ' + pct(wrong / accepted.length, 1)
+    : '—（没有自动采用）';
+}
+
 function basket(rebuild) {
   if (rebuild) {
     bins = binsFor(test, temperature());
@@ -87,6 +102,7 @@ function basket(rebuild) {
   guess.value = Math.round(bin.count * bin.confidence);
   find('outcome').textContent = '';
   if (checked) report();
+  decisionRisk();
 }
 
 find('guess').onsubmit = event => {
@@ -113,6 +129,7 @@ function adjustTemperature() {
   basket(true);
 }
 find('temperature').oninput = adjustTemperature;
+find('decision-threshold').oninput = decisionRisk;
 find('reset').onclick = () => { find('temperature').value = 1; adjustTemperature(); };
 find('fit').onclick = () => {
   const fitted = fitTemperature(validation);

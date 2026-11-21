@@ -1,10 +1,11 @@
-import {transform, combine, shiftRight, magnitudeChanges} from './fft.js';
+import {transform, combine, shiftRight, magnitudeChanges, phaseCorrelation} from './fft.js';
 import {find} from '../ui.js';
 
 const size = 128;
-const fields = ['file-a','file-b','distance','defaults'];
+const fields = ['file-a','file-b','distance','defaults','registration-shift'];
 const guesses = Array.from(document.querySelectorAll('[data-guess]'));
 let sources, original, revision = {a:0,b:0}, version = 0, pending = false;
+let registration;
 const getContext = id => find(id).getContext('2d');
 const spectrum = image => transform(image,size);
 
@@ -46,6 +47,53 @@ function reveal(answer) {
 }
 
 const centered = (x,y) => ((y+size/2)%size)*size + (x+size/2)%size;
+function drawRegistration() {
+  const canvas = find('registration-plot');
+  const context = canvas.getContext('2d');
+  const width = canvas.clientWidth, height = canvas.clientHeight, scale = devicePixelRatio || 1;
+  if (!width || !height) return;
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  context.scale(scale, scale);
+  const x = offset => 23 + offset * (width - 47) / (size - 1);
+  const bottom = height - 26;
+  context.strokeStyle = '#aebac0';
+  context.beginPath();
+  context.moveTo(x(0),bottom); context.lineTo(x(size - 1),bottom);
+  context.stroke();
+  context.fillStyle = '#394755';
+  context.font = '12px system-ui';
+  context.textAlign = 'center';
+  for (const offset of [0,32,64,96,127]) context.fillText(offset + ' px',x(offset),height - 6);
+  if (!registration) return;
+  const amplitude = Math.max(...registration.map(Math.abs));
+  if (!amplitude) return;
+  const y = value => 9 + (bottom - 14) * (.5 - .5 * value / amplitude);
+  context.strokeStyle = '#d6dedf';
+  context.beginPath(); context.moveTo(x(0),y(0)); context.lineTo(x(size-1),y(0)); context.stroke();
+  context.beginPath();
+  registration.forEach((value,i) => i ? context.lineTo(x(i),y(value)) : context.moveTo(x(i),y(value)));
+  context.strokeStyle = '#953a2d';
+  context.lineWidth = 2;
+  context.stroke();
+}
+
+function recoverShift(reference, shifted) {
+  const correlation = phaseCorrelation(reference, shifted, size);
+  registration = correlation?.subarray(0,size);
+  const status = find('registration-result');
+  if (!registration) {
+    status.textContent = '这幅图的非直流频谱没有可用信号，无法估计位移。';
+  } else {
+    const peak = Math.max(...registration);
+    const candidates = Array.from(registration.keys()).filter(i => registration[i] >= .95 * peak);
+    status.textContent = candidates.length === 1
+      ? '从峰的位置估计循环右移 ' + candidates[0] + ' px。'
+      : '发现 ' + candidates.length + ' 个位置接近最高峰。仅凭这一对图无法可靠区分它们。';
+  }
+  drawRegistration();
+}
+
 function shift() {
   const offset = Number(find('distance').value);
   const {pixels,frequency} = sources.a;
@@ -68,6 +116,9 @@ function shift() {
   render('spectrum-shifted',after,0,max);
   render('phase',phase,0,2*Math.PI);
   find('shift-value').textContent = offset + ' px';
+  find('registration-shift').value = offset;
+  find('registration-shift-value').textContent = offset + ' px';
+  recoverShift(frequency,other);
   const changes = magnitudeChanges(frequency,other);
   find('magnitude-note').textContent = '非直流幅度最大差 ÷ 原图最大非直流幅度 = ' +
     changes.toExponential(2) + '。接近零的残差来自浮点计算。';
@@ -88,6 +139,10 @@ find('distance').oninput = () => {
   if (pending) return;
   pending = true;
   requestAnimationFrame(() => { pending = false; shift(); });
+};
+find('registration-shift').oninput = () => {
+  find('distance').value = find('registration-shift').value;
+  find('distance').oninput();
 };
 find('defaults').onclick = () => {
   version++;
@@ -133,6 +188,7 @@ try {
     original[key] = {pixels,frequency:spectrum(pixels),name:i ? '图 B · 枫叶' : '图 A · 校园建筑'};
   }
   find('defaults').onclick();
+  new ResizeObserver(drawRegistration).observe(find('registration-plot'));
   for (const id of fields) find(id).disabled = false;
   for (const button of guesses) button.disabled = false;
 } catch {
