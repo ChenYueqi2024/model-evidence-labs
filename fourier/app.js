@@ -2,12 +2,14 @@ import {transform, combine, shiftRight, magnitudeChanges, phaseCorrelation} from
 import {find} from '../ui.js';
 
 const size = 128;
-const fields = ['file-a','file-b','distance','defaults','registration-shift'];
+const fields = ['file-a','file-b','distance','defaults','registration-shift','periodic'];
 const guesses = Array.from(document.querySelectorAll('[data-guess]'));
 let sources, original, revision = {a:0,b:0}, version = 0, pending = false;
 let registration;
-const getContext = id => find(id).getContext('2d');
 const spectrum = image => transform(image,size);
+const bars = Float64Array.from({length: size * size}, (_, i) => i % 16 < 8 ? 40 : 220);
+const barsFrequency = spectrum(bars);
+const getContext = id => find(id).getContext('2d');
 
 function pixelsFrom(image, x, y, width, height) {
   const canvas = document.createElement('canvas');
@@ -118,7 +120,13 @@ function shift() {
   find('shift-value').textContent = offset + ' px';
   find('registration-shift').value = offset;
   find('registration-shift-value').textContent = offset + ' px';
-  recoverShift(frequency,other);
+  const periodic = find('periodic').checked;
+  find('stripes').hidden = !periodic;
+  if (periodic) {
+    const shiftedBars = shiftRight(bars,size,offset);
+    render('stripes',shiftedBars);
+    recoverShift(barsFrequency,spectrum(shiftedBars));
+  } else recoverShift(frequency,other);
   const changes = magnitudeChanges(frequency,other);
   find('magnitude-note').textContent = '非直流幅度最大差 ÷ 原图最大非直流幅度 = ' +
     changes.toExponential(2) + '。接近零的残差来自浮点计算。';
@@ -144,6 +152,7 @@ find('registration-shift').oninput = () => {
   find('distance').value = find('registration-shift').value;
   find('distance').oninput();
 };
+find('periodic').onchange = shift;
 find('defaults').onclick = () => {
   version++;
   sources = {...original};

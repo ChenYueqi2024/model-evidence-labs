@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="用可靠性图和一批真实计算的分类概率实验温度校准。"><title>九成把握，真的能对九成吗？ · Yueqi 的交互实验</title><link rel="stylesheet" href="../style.css"><script type="module" src="app.js"></script></head>
-<body class="calibration"><header><a class="wordmark" href="https://chenyueqi2024.github.io/">Yueqi · 实验室</a><nav aria-label="实验"><a id="previous" href="../">背景捷径</a><a href="./" aria-current="page">置信度</a><a href="../fourier/">傅里叶图像</a></nav></header>
+<body class="calibration"><header><a class="wordmark" href="https://chenyueqi2024.github.io/">Yueqi · 实验室</a><nav aria-label="实验"><a id="previous" href="../">背景捷径</a><a href="./" aria-current="page">置信度</a><a href="../fourier/">傅里叶图像</a><a href="../rag/">RAG</a></nav></header>
 <main>
   <a class="research-jump" href="#research">应用、前沿论文与研究练习</a>
   <section class="hero"><div><p class="eyebrow">分类概率 / 温度校准</p><h1>九成把握，<br>真的能对九成吗？</h1></div><p>继续用上一站的分类器。挑一档它说自己很有把握的图片，猜猜其中有多少张真的判对。</p></section>
@@ -30,7 +30,7 @@
   <section class="research" id="research" aria-labelledby="research-title">
     <h2 id="research-title">从校准曲线到可控的决策风险</h2>
     <p class="research-lead">校准回答的是「模型说九成时，这批样本实际有多准」。实际系统往往还要决定哪些预测可以自动采用，哪些应转人工复核。改变阈值，会同时改变答题量和已答样本里的错误率。</p>
-    <section class="research-lab" aria-labelledby="threshold-title"><h3 id="threshold-title">把不够确定的图片交给人工复核</h3><p>使用上方当前的模型、温度和测试集。模型只自动采用置信度达到阈值的预测。把测试分布切到少见搭配较多，看看提高阈值还会不会丢下那些判断错却很自信的图。</p><div class="actions"><label for="decision-threshold">自动采用阈值 <output id="threshold-value">90%</output></label><input id="decision-threshold" type="range" min="50" max="100" step="1" value="90"></div><dl class="study-stats"><div><dt>自动采用</dt><dd id="decision-accepted">—</dd></div><div><dt>需复核</dt><dd id="decision-review">—</dd></div><div><dt>自动采用的预测中判错</dt><dd id="decision-risk">—</dd></div></dl></section>
+    <section class="research-lab" aria-labelledby="threshold-title"><h3 id="threshold-title">把不够确定的图片交给人工复核</h3><p>使用上方当前的模型、温度和测试集。模型只自动采用置信度达到阈值的预测。把测试分布切到少见搭配较多，看看提高阈值还会不会丢下那些判断错却很自信的图。</p><div class="actions"><label for="decision-threshold">自动采用阈值 <output id="threshold-value">90%</output></label><input id="decision-threshold" type="range" min="50" max="100" step="1" value="90"></div><dl class="study-stats"><div><dt>自动采用</dt><dd id="decision-accepted">—</dd></div><div><dt>需复核</dt><dd id="decision-review">—</dd></div><div><dt>自动采用的预测中判错</dt><dd id="decision-risk">—</dd></div></dl><details><summary>按背景和形状核对复核负担</summary><p>先切换测试分布，再提高阈值。即使总体错误率下降，也值得检查某一组是否被频繁转人工。</p><div class="table-wrap"><table><thead><tr><th scope="col">样本组</th><th scope="col">采用 / 总数</th><th scope="col">需复核</th><th scope="col">采用中的错判</th></tr></thead><tbody id="decision-groups"></tbody></table></div></details></section>
     <h3 class="route-heading">从应用到前沿</h3>
     <ol class="research-route">
       <li><article><h4>校准概率与检查分布漂移</h4><p>温度缩放用带标签验证集拟合一个参数，让概率更贴近正确频率。Ovadia 等比较了多种方法在分布变化下的不确定性估计，显示同分布校准的改善不能保证迁移后仍然可靠。</p><p class="trade">温度缩放计算成本小，保留了原预测排序，因此没法把原来判错的图变成判对。评估时可并列看负对数似然、可靠性图和各档样本数，避免只挑一个分档指标。</p><p class="sources"><a href="https://proceedings.mlr.press/v70/guo17a.html">Guo 等 · 温度缩放，ICML 2017</a> · <a href="https://arxiv.org/abs/1906.02530">Ovadia 等 · 不确定性与数据分布变化，NeurIPS 2019</a></p></article></li>

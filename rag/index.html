@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="可视化 RAG 实验，拆解文档切块、检索、上下文和带引用的回答。"><title>答案有出处吗？ · RAG 可视化实验</title><link rel="stylesheet" href="../style.css"><script type="module" src="app.js"></script></head>
+<body class="rag"><header><a class="wordmark" href="https://chenyueqi2024.github.io/">Yueqi · 实验室</a><nav aria-label="实验"><a href="../">背景捷径</a><a href="../calibration/">置信度</a><a href="../fourier/">傅里叶图像</a><a href="./" aria-current="page">RAG</a></nav></header>
+<main>
+<a class="research-jump" href="#research">实际应用、评测与研究练习</a>
+<section class="hero"><div><p class="eyebrow">检索增强生成 / 证据核查</p><h1>答案有出处吗？</h1></div><p>同一件器材，新旧规定写了不同的借期。RAG 先从资料库找段落，再把它们交给回答器。试着移走新规，看看回答器会引用旧规，还是承认证据不足。</p></section>
+<p class="hint">实验资料库是虚构的英文手册。默认回答器用已标注的证据规则演示，每条预设都有可检查的原文。支持设备上也可让浏览器的本机模型用相同上下文生成回答。</p>
+<form id="search" class="panel">
+  <h2>先选一个问题</h2><div class="actions task-list" id="tasks"></div>
+  <label for="question">检索问题</label><input id="question" maxlength="300" class="question" required>
+  <div class="actions">
+    <label>切块 <select id="chunks"><option value="paragraph">按段落</option><option value="sentence">按句子</option><option value="document">整篇文档</option></select></label>
+    <label>排序 <select id="ranker"><option value="bm25">BM25</option><option value="overlap">词项覆盖</option></select></label>
+    <label><input id="expand" type="checkbox"> 展开同义词</label>
+  </div>
+  <div class="actions">
+    <label for="top">取前 <output id="top-value">3</output> 块</label><input type="range" id="top" min="1" max="8" value="3">
+    <label for="budget">上下文预算 <output id="budget-value">430</output> 字符</label><input type="range" id="budget" min="60" max="1200" step="10" value="430">
+    <button type="submit">运行检索</button>
+  </div>
+  <details><summary>浏览文档或添加自己的文本</summary><div id="library"></div><label for="custom">附加文档（最多 2400 字符）</label><textarea id="custom" maxlength="2400" rows="4" placeholder="粘贴纯文本，用空行分段。检索可以分中文词，浏览器模型演示使用英文。"></textarea></details>
+</form>
+<section class="panel" aria-labelledby="retrieval-title">
+  <h2 id="retrieval-title">检索结果 → 上下文</h2><p id="pipeline" role="status"></p>
+  <p>分数只在本次排序内有意义。预算按正文字符计算，放不下的候选会跳过。取消勾选任何已检索段落，可以观察回答失去证据后的变化。</p>
+  <div id="retrieved" class="rag-chunks"></div>
+</section>
+<section class="panel" aria-labelledby="answer-title"><h2 id="answer-title">回答与引用</h2>
+  <p id="answer" class="verdict" role="status"></p><div id="citations"></div>
+  <details><summary>查看交给回答器的提示词</summary><pre id="prompt"></pre></details>
+  <div class="actions"><button id="copy" class="secondary" type="button">复制提示词</button><button id="generate" type="button" disabled>用浏览器本机模型回答</button></div>
+  <p id="model-status" role="status">正在检查本机模型…</p><pre id="generated" hidden></pre>
+  <p><a href="https://developer.chrome.com/docs/ai/prompt-api">浏览器本机模型支持条件</a></p>
+</section>
+<section class="panel" aria-labelledby="eval-title"><h2 id="eval-title">用同一组问题检查改动</h2>
+  <p>下面是五个预设问题的人工标注。这里测的是标注原文有多少进入候选和上下文。缺证据的题单独标出，不能用召回率评分。这个小样本适合定位故障。</p>
+  <div class="table-wrap"><table><thead><tr><th scope="col">问题</th><th scope="col">前 K 块找到</th><th scope="col">上下文保留</th></tr></thead><tbody id="evaluation"></tbody></table></div>
+  <p class="hint">做一次受控比较：固定切块，只提高 K，再把预算调小。观察「找到了」与「回答器看到了」何时分开。测评自动重跑，单题手动移除只影响当前回答。</p>
+</section>
+<section class="research" id="research" aria-labelledby="research-title">
+  <h2 id="research-title">从文档检索走到可验证回答</h2>
+  <ol class="research-route">
+    <li><h3>关键词与向量检索</h3><p>BM25 给罕见词更多权重，还考虑词频饱和和块长度。DPR 学习问题和段落的向量表示，以便找到措辞不同但相关的段落。实践中常做两路召回再重排，尤其当查询同时包含概念和精确编号时。本站的同义词表只用于演示扩词。</p><p class="sources"><a href="https://www.nowpublishers.com/article/DownloadEBook/INR-019">Robertson 与 Zaragoza · BM25</a> · <a href="https://arxiv.org/abs/2004.04906">Karpukhin 等 · DPR，EMNLP 2020</a></p></li>
+    <li><h3>检索结果怎样影响生成</h3><p>Lewis 等将可检索的外部文档与生成模型结合。后来 Self-RAG 让模型按需检索并评价证据。把更多段落放进上下文也有成本，研究观察到模型有时更容易利用开头和结尾的信息。可以固定证据集合，只改变段落顺序来测试这一点。</p><p class="sources"><a href="https://arxiv.org/abs/2005.11401">Lewis 等 · RAG，NeurIPS 2020</a> · <a href="https://arxiv.org/abs/2310.11511">Asai 等 · Self-RAG，ICLR 2024</a> · <a href="https://arxiv.org/abs/2307.03172">Liu 等 · Lost in the Middle，TACL 2024</a></p></li>
+    <li><h3>从“带引用”到“引用能支持主张”</h3><p>ALCE 分别测回答质量与引用质量。GaRAGe 为问答标注支撑段落，帮助区分检索失败和生成失败。LIT-RAGBench 进一步隔离生成阶段，考察跨证据整合、表格、推理和拒答。引用旧文档即使和句子一致，也可能答错用户问的时间。</p><p class="sources"><a href="https://arxiv.org/abs/2305.14627">Gao 等 · ALCE，EMNLP 2023</a> · <a href="https://aclanthology.org/2025.findings-acl.875/">Sorodoc 等 · GaRAGe，Findings of ACL 2025</a> · <a href="https://aclanthology.org/2026.lrec-1.427/">LIT-RAGBench，LREC 2026</a></p></li>
+  </ol>
+  <section class="research-project"><h3>把检索失败和生成失败分开</h3><p>选一批带原文标注的问题，每题分别给回答器三种上下文：实际检索结果、人工标注的完整证据、去掉一条关键证据的对照。固定生成模型、提示词和预算，记录证据召回、答案正确率、逐条引用支持率和缺证据时的拒答率。</p><p>特别保留同义改写、两跳问题、新旧版本并存和无法回答的题。若换成完整证据仍答错，优先研究生成与引用。若只有实际检索组失败，先追查切块、排名和预算。</p></section>
+</section>
+<footer><a href="../">返回其他实验</a><a href="https://github.com/ChenYueqi2024/model-evidence-labs">源码与复现</a></footer>
+</main></body></html>

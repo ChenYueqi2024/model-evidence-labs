@@ -1,4 +1,4 @@
-import {predictions, shapes} from '../model.js';
+import {predictions, shapes, colors} from '../model.js';
 import {find, pct, thumbnail, trainInWorker} from '../ui.js';
 import {binsFor, fitTemperature, nll} from './metrics.js';
 
@@ -78,6 +78,24 @@ function decisionRisk() {
   find('decision-risk').textContent = accepted.length
     ? wrong + ' / ' + accepted.length + ' · ' + pct(wrong / accepted.length, 1)
     : '—（没有自动采用）';
+  const table = find('decision-groups');
+  table.replaceChildren();
+  for (const [label, shape] of shapes.entries()) {
+    for (const [color, background] of colors.entries()) {
+      const inGroup = row => row.sample.label === label && row.sample.color === color;
+      const size = test.filter(inGroup).length;
+      const kept = accepted.filter(inGroup);
+      const errors = kept.filter(row => !row.correct).length;
+      const row = table.insertRow();
+      const heading = document.createElement('th');
+      heading.scope = 'row';
+      heading.textContent = background + shape;
+      row.append(heading);
+      row.insertCell().textContent = kept.length + ' / ' + size;
+      row.insertCell().textContent = size - kept.length;
+      row.insertCell().textContent = kept.length ? errors + ' / ' + kept.length + ' · ' + pct(errors / kept.length,1) : '—';
+    }
+  }
 }
 
 function basket(rebuild) {
