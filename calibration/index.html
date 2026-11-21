@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="用可靠性图和一批真实计算的分类概率实验温度校准。"><title>九成把握，真的能对九成吗？ · Yueqi 的交互实验</title><link rel="stylesheet" href="../style.css"><script type="module" src="app.js"></script></head>
+<body class="calibration"><header><a class="wordmark" href="https://chenyueqi2024.github.io/">Yueqi · 实验室</a><nav aria-label="实验"><a id="previous" href="../">背景捷径</a><a href="./" aria-current="page">置信度</a><a href="../fourier/">傅里叶图像</a></nav></header>
+<main>
+  <section class="hero"><div><p class="eyebrow">分类概率 / 温度校准</p><h1>九成把握，<br>真的能对九成吗？</h1></div><p>继续用上一站的分类器。挑一档它说自己很有把握的图片，猜猜其中有多少张真的判对。</p></section>
+  <section class="panel">
+    <div class="section-head"><h2>围绕同一个模型做两次测量</h2><span id="model-status" role="status">正在准备模型…</span></div>
+    <div class="actions"><label for="distribution">测试分布</label><select id="distribution" disabled><option value="90">常见搭配占 90%（与验证集一致）</option><option value="50">两种搭配均衡 · 50%</option><option value="5">少见搭配占 95%</option></select></div>
+    <div class="actions"><label for="temperature">温度 T <output id="temp-value">1.00</output></label><input id="temperature" type="range" min=".15" max="12" value="1" step=".01" disabled><button id="fit" disabled>在验证集上拟合温度</button><button class="secondary" id="reset" disabled>恢复 T = 1</button></div>
+    <p id="fit-note" class="hint">拟合只使用 400 张独立验证图，常见搭配占 90%。切换测试分布后，仍使用这个温度。调温只改变概率分布，原模型和预测类别保持固定。</p>
+  </section>
+  <section class="panel">
+    <h2>先猜这一档能答对多少</h2>
+    <div class="actions"><label for="bucket">预测置信度范围</label><select id="bucket" disabled></select></div>
+    <p id="basket-info"></p>
+    <div id="basket" class="examples"></div>
+    <form id="guess" class="actions"><label for="guess-value">我猜答对</label><input id="guess-value" type="number" min="0" max="400" step="1" value="0" required disabled><span>张</span><button id="reveal" disabled>揭晓这一档</button></form>
+    <p id="outcome" class="verdict" role="status"></p>
+  </section>
+  <section id="results" class="panel" hidden>
+    <h2>可靠性图</h2><p>每个点是一档置信度。横轴是模型平均把握，纵轴是实际答对比例。点在对角线下方，表示模型在这一档偏自信。</p>
+    <canvas id="reliability" role="img" aria-label="预测置信度与实际正确率图，数值也列在下方表格。"></canvas>
+    <p>蓝点是其他置信度档，橙点是当前选中的档。点越大，这档包含的样本越多。</p>
+    <div class="summary" id="metrics"></div>
+    <div class="table-wrap"><table><caption>每档的读数。置信度是模型给预测类别的概率。</caption><thead><tr><th scope="col">置信度</th><th scope="col">张数</th><th scope="col">平均把握</th><th scope="col">实际答对</th></tr></thead><tbody id="bin-rows"></tbody></table></div>
+  </section>
+  <details><summary>为什么调温不改类别？校准后还能失效吗？</summary><p>温度缩放先把分类分数除以正数 T，再计算概率。T 越大，分数差越接近零，概率更接近一半。正数除法保留分数顺序，所以预测类别保持一致。</p><p>温度在验证集上通过最小化平均负对数似然选出。拟合完成后，可以用同一个温度查看常见搭配较多的测试集和少见搭配较多的测试集，观察校准能否跨分布保持。每档样本少时，实际正确率波动也更大。ECE 是按样本数加权的置信度与正确率差，读数取决于分档。</p><p><a href="https://proceedings.mlr.press/v70/guo17a.html">Guo 等 · On Calibration of Modern Neural Networks，ICML 2017</a></p></details>
+  <footer><a href="../fourier/">下一站 · 互换两张照片的频谱</a><a href="https://github.com/ChenYueqi2024/model-evidence-labs">源码与复现</a></footer>
+</main></body></html>

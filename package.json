@@ -1,0 +1,1 @@
+{"name":"model-evidence-labs","private":true,"type":"module","scripts":{"test":"node --test"}}

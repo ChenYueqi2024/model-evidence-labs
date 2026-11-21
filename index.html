@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="在浏览器里训练一个小型图像分类器，亲手查证它会不会靠背景颜色走捷径。"><title>换个背景，它还认得吗？ · Yueqi 的交互实验</title><link rel="stylesheet" href="style.css"><script type="module" src="shortcut.js"></script></head>
+<body><header><a class="wordmark" href="https://chenyueqi2024.github.io/">Yueqi · 实验室</a><nav aria-label="实验"><a href="./" aria-current="page">背景捷径</a><a id="next" href="calibration/">置信度</a><a href="fourier/">傅里叶图像</a></nav></header>
+<main>
+  <section class="hero">
+    <div><p class="eyebrow">图像分类 / 数据偏差</p><h1>换个背景，<br>它还认得吗？</h1></div>
+    <p>训练时，大多数圆形都在蓝底上。现在给同一个圆换成红底。模型还会把它判成圆吗？</p>
+  </section>
+  <section class="panel" aria-labelledby="pair-title">
+    <div class="section-head"><h2 id="pair-title">只改背景</h2><button id="another" class="secondary" disabled>换个测试样本</button></div>
+    <div class="pair samples">
+      <figure><canvas id="original" width="12" height="12" role="img"></canvas><figcaption>原搭配 <output id="original-score">等待训练</output></figcaption></figure>
+      <figure><canvas id="changed" width="12" height="12" role="img"></canvas><figcaption>交换背景 <output id="changed-score">等待你的预测</output></figcaption></figure>
+    </div>
+    <div class="actions"><span>猜预测类别会怎样变？</span><button id="same" disabled>保持原判</button><button id="flip" disabled>改判</button></div>
+    <p id="answer" class="verdict" role="status"></p>
+  </section>
+  <section class="panel" aria-labelledby="training">
+    <h2 id="training">只改训练集的搭配</h2>
+    <p>改变“蓝底圆、红底方”的比例，再训练同一结构的网络。形状、初始权重、抽样顺序和 240 步训练预算固定。下面同时保留第一次训练的成绩。</p>
+    <div class="actions"><label for="bias">常见搭配比例 <output id="ratio">95%</output></label><input id="bias" type="range" min="50" max="100" value="95" step="1"><button id="balance" class="secondary" disabled>设为均衡</button><button id="retrain" disabled>重新训练</button></div>
+    <p id="training-status" role="status">正在准备训练…</p>
+    <div class="table-wrap"><table><caption>均衡测试集固定为每组 100 张。点组名可查看误判样本。</caption><thead><tr><th scope="col">样本组</th><th scope="col">当前训练张数</th><th scope="col">首次训练准确率</th><th scope="col">当前准确率</th></tr></thead><tbody id="groups"></tbody></table></div>
+    <div class="summary" id="summary"></div>
+    <div id="errors" class="examples" aria-live="polite"></div>
+    <p class="hint">只看背景的参照规则把蓝底判为圆、红底判为方。如果测试集有 95% 是常见搭配，这条规则的总体准确率是 95%，两组少见搭配的准确率都是 0%。</p>
+  </section>
+  <details><summary>模型实际学的是什么？</summary><p>图像由程序生成，形状有位置、大小和亮度变化。颜色通道在形状覆盖处消失，因此换底时模型的形状通道逐像素保持一致。小型卷积网络用 10 个可学习的 3×3 滤波器，经过分区平均池化和线性分类头输出概率。浏览器后台运行交叉熵训练。</p><p>同一批形状的背景可以替换，这让我们能检查模型对单一因素的敏感性。总体准确率还会受测试集比例影响，因此这里同时报告表现最差的一组。合成图像适合控制变量，真实照片则需要验证换背景后标签和主体是否仍保持一致。</p><p><a href="https://arxiv.org/abs/2004.07780">Geirhos 等 · 捷径学习</a> · <a href="https://arxiv.org/abs/1911.08731">Sagawa 等 · 最差组泛化</a></p></details>
+  <footer><a id="continue" href="calibration/">用当前模型继续检验置信度</a><a href="https://github.com/ChenYueqi2024/model-evidence-labs">源码与复现</a></footer>
+</main></body></html>

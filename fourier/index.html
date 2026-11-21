@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="互换两张图像的傅里叶幅度与相位，再亲手验证平移定理。"><title>互换频谱以后，你还认得谁？ · Yueqi 的交互实验</title><link rel="stylesheet" href="../style.css"><script type="module" src="app.js"></script></head>
+<body class="fourier"><header><a class="wordmark" href="https://chenyueqi2024.github.io/">Yueqi · 实验室</a><nav aria-label="实验"><a href="../">背景捷径</a><a href="../calibration/">置信度</a><a href="./" aria-current="page">傅里叶图像</a></nav></header>
+<main>
+  <section class="hero"><div><p class="eyebrow">信号处理 / 二维傅里叶变换</p><h1>互换频谱以后，<br>你还认得谁？</h1></div><p>一幅图可以拆成频率成分的强度和相位。把建筑的幅度和叶片的相位拼起来，重建图会像谁？</p></section>
+  <section class="panel">
+    <div class="section-head"><h2>交叉重建两张图</h2><button class="secondary" id="defaults" disabled>恢复示例</button></div>
+    <div class="pair inputs">
+      <figure><canvas id="image-a" width="128" height="128" role="img" aria-label="图 A 的灰度图"></canvas><figcaption><span id="name-a">图 A · 校园建筑</span><label>更换图 A <input id="file-a" type="file" accept="image/png,image/jpeg,image/webp,image/avif" disabled></label></figcaption></figure>
+      <figure><canvas id="image-b" width="128" height="128" role="img" aria-label="图 B 的灰度图"></canvas><figcaption><span id="name-b">图 B · 枫叶</span><label>更换图 B <input id="file-b" type="file" accept="image/png,image/jpeg,image/webp,image/avif" disabled></label></figcaption></figure>
+    </div>
+    <p class="hint">预设来自生成的照片风格样图。自选图在浏览器本地读取，居中裁成正方形，再按 128 × 128 灰度图处理。支持 JPEG、PNG、WebP、AVIF，单张最大 15 MiB。</p>
+    <div class="actions"><span>取 A 的幅度和 B 的相位，你猜重建图更像谁？</span><button data-guess="a" disabled>更像图 A</button><button data-guess="b" disabled>更像图 B</button><button data-guess="both" disabled>要看具体图像</button></div>
+    <p id="swap-note" class="verdict" role="status">正在载入样图…</p>
+    <div class="pair" id="swaps" hidden>
+      <figure><canvas id="ab" width="128" height="128" role="img" aria-label="A 的幅度与 B 的相位重建图"></canvas><figcaption>A 的幅度 × B 的相位</figcaption></figure>
+      <figure><canvas id="ba" width="128" height="128" role="img" aria-label="B 的幅度与 A 的相位重建图"></canvas><figcaption>B 的幅度 × A 的相位</figcaption></figure>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>图移了，幅度谱也会移吗？</h2>
+    <p>让图 A 循环右移。越过右边缘的像素从左边回来。下面两幅幅度谱共用亮度尺度，频谱中心是直流分量。</p>
+    <div class="actions"><label for="distance">右移 <output id="shift-value">24 px</output></label><input id="distance" type="range" min="0" max="127" value="24" disabled></div>
+    <div class="pair spectrum">
+      <figure><canvas id="shifted" width="128" height="128" role="img" aria-label="循环右移后的图 A"></canvas><figcaption>循环平移后的 A</figcaption></figure>
+      <figure><canvas id="phase" width="128" height="128" role="img" aria-label="平移前后的相位差，忽略幅度很小的频点"></canvas><figcaption>相位差 · −π 至 +π</figcaption></figure>
+      <figure><canvas id="spectrum-a" width="128" height="128" role="img" aria-label="图 A 的对数幅度谱"></canvas><figcaption>平移前幅度谱</figcaption></figure>
+      <figure><canvas id="spectrum-shifted" width="128" height="128" role="img" aria-label="平移后的对数幅度谱"></canvas><figcaption>平移后幅度谱</figcaption></figure>
+    </div>
+    <p class="verdict" id="magnitude-note"></p>
+  </section>
+  <details><summary>观察背后的公式与条件</summary><p>频谱可写成 F = A · exp(iφ)。A 是幅度，φ 是相位。交换图像的幅度与相位后，用二维逆 FFT 合成像素，两幅合成图用同一灰度范围显示。轮廓常随相位保留下来，幅度仍会改变亮度、对比度和纹理。两张图的频率分布差得很多时，效果也会变。</p><p>宽度 N 的图像循环右移 Δ 像素，每个水平频率 k 会多乘一个 exp(−2πikΔ/N)。这个因子的绝对值为 1，所以幅度不变，相位随频率而变。相位差图把角度折回 −π 到 +π，幅度接近零的点留暗。裁切或用空白填充边缘会改变信号，和这里的循环平移条件不同。</p><p><a href="https://dsp-group.mit.edu/wp-content/uploads/2024/11/ImportancePhaseSignals_1981.pdf">Oppenheim 与 Lim · The Importance of Phase in Signals，1981</a></p></details>
+  <footer><a href="../">返回背景捷径实验</a><a href="https://github.com/ChenYueqi2024/model-evidence-labs">源码与复现</a></footer>
+</main></body></html>
